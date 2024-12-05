@@ -40,6 +40,7 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+            width: 100%;
         }
         .button:disabled {
             background-color: #cccccc;
@@ -49,16 +50,29 @@
             margin-top: 10px;
             padding: 10px;
             border-radius: 4px;
-            display: none;
         }
         .status-info {
             background-color: #e6f3ff;
+            border: 1px solid #b3d7ff;
         }
         .status-success {
             background-color: #e6ffe6;
+            border: 1px solid #b3ffb3;
         }
         .status-error {
             background-color: #ffe6e6;
+            border: 1px solid #ffb3b3;
+            white-space: pre-wrap;
+        }
+        #debug {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            display: none;
         }
     </style>
 </head>
@@ -74,13 +88,14 @@
         <button id="upload-btn" class="button" onclick="startProcess()">התחל תהליך זיהוי</button>
         
         <div id="status"></div>
+        <div id="debug"></div>
     </div>
 
     <script>
         async function startProcess() {
             const audioFile = document.getElementById('audio-file').files[0];
             const uploadBtn = document.getElementById('upload-btn');
-            const statusDiv = document.getElementById('status');
+            const debugDiv = document.getElementById('debug');
 
             if (!audioFile) {
                 showStatus('נא לבחור קובץ אודיו', 'error');
@@ -90,21 +105,43 @@
             uploadBtn.disabled = true;
             
             try {
-                // Get temporary upload URL
+                // שלב 1: קבלת URL להעלאה
                 showStatus('מקבל קישור להעלאה...', 'info');
                 const response = await fetch('/.netlify/functions/diarize', {
                     method: 'POST'
                 });
 
+                const data = await response.json();
+                
+                // הצגת מידע לדיבוג
+                debugDiv.style.display = 'block';
+                debugDiv.textContent = 'Response data:\n' + JSON.stringify(data, null, 2);
+
                 if (!response.ok) {
-                    throw new Error(`שגיאת שרת: ${response.status}`);
+                    throw new Error(`שגיאת שרת: ${response.status}\nפרטים: ${JSON.stringify(data, null, 2)}`);
                 }
 
-                const data = await response.json();
-                showStatus('קיבלנו קישור להעלאה: ' + data.url, 'success');
-                
-                // Here you would continue with the upload process
-                // Will add this in the next iteration
+                if (!data.url) {
+                    throw new Error('לא התקבל URL להעלאה');
+                }
+
+                // שלב 2: העלאת הקובץ
+                showStatus('מעלה את הקובץ...', 'info');
+                const uploadResponse = await fetch(data.url, {
+                    method: 'PUT',
+                    body: audioFile,
+                    headers: {
+                        'Content-Type': audioFile.type
+                    }
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error(`שגיאה בהעלאת הקובץ: ${uploadResponse.status}`);
+                }
+
+                showStatus('הקובץ הועלה בהצלחה!\nמתחיל תהליך זיהוי דוברים...', 'success');
+
+                // כאן נוסיף את הקריאה לתהליך הזיהוי בהמשך
                 
             } catch (error) {
                 console.error('Error:', error);
