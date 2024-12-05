@@ -21,9 +21,6 @@ exports.handler = async function(event, context) {
       .update(signedContent)
       .digest('hex');
 
-    console.log('Calculated signature:', expectedSignature);
-    console.log('Received signature:', signature);
-
     if (signature !== expectedSignature) {
       console.error('Invalid webhook signature');
       return {
@@ -38,7 +35,7 @@ exports.handler = async function(event, context) {
     console.log('Webhook data:', webhookData);
 
     // אחסון התוצאות בקובץ או במסד נתונים
-    // אפשר להוסיף כאן קוד שמנהל את הנתונים
+    // כאן אפשר להוסיף קוד שישמור את התוצאות
 
     return {
       statusCode: 200,
