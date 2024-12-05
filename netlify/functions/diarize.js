@@ -9,7 +9,6 @@ exports.handler = async function(event, context) {
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
-  // בקשת preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers };
   }
@@ -22,17 +21,19 @@ exports.handler = async function(event, context) {
       throw new Error('API key not configured');
     }
 
-    // יצירת URL עבור הקובץ
-    const uniqueId = `file_${Date.now()}`;
-    const mediaUrl = `media://${uniqueId}`;
+    // Generate a simple, URL-safe identifier
+    const objectKey = `audio_${Date.now()}`
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toLowerCase();
     
-    // כתובת ה-webhook שלנו - נשתמש באותה פונקציה אבל עם נתיב אחר
-    const webhookUrl = `${process.env.URL}/.netlify/functions/diarize-webhook`;
-    console.log('Webhook URL:', webhookUrl);
+    const mediaUrl = `media://${objectKey}`;
+    console.log('Using media URL:', mediaUrl);
 
-    // קבלת URL זמני
+    // Step 1: Get temporary URL
     const response = await axios.post('https://api.pyannote.ai/v1/media/input', 
-      { url: mediaUrl },
+      { 
+        url: mediaUrl
+      },
       {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -41,9 +42,11 @@ exports.handler = async function(event, context) {
       }
     );
 
-    console.log('Got temporary URL:', response.data.url);
+    console.log('Received response:', response.data);
 
-    // התחלת תהליך הזיהוי עם webhook
+    const webhookUrl = `${process.env.URL}/.netlify/functions/diarize-webhook`;
+
+    // Step 2: Start diarization process
     const diarizeResponse = await axios.post('https://api.pyannote.ai/v1/diarize',
       {
         url: mediaUrl,
@@ -57,8 +60,6 @@ exports.handler = async function(event, context) {
       }
     );
 
-    console.log('Diarization started:', diarizeResponse.data);
-
     return {
       statusCode: 200,
       headers,
@@ -66,17 +67,14 @@ exports.handler = async function(event, context) {
         tempUrl: response.data.url,
         mediaUrl: mediaUrl,
         jobId: diarizeResponse.data.jobId,
-        message: 'Diarization process started'
+        message: 'Process started successfully'
       })
     };
 
   } catch (error) {
-    console.error('Error details:', {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status
-    });
-    
+    console.error('Full error:', error);
+    console.error('Error response:', error.response?.data);
+
     return {
       statusCode: 500,
       headers,
