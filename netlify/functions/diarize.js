@@ -108,3 +108,17 @@ exports.handler = async function(event, context) {
     };
   }
 };
+
+// פונקציה בודקת אם הפורמט של הקובץ נתמך
+async function checkAudioFormat(filePath) {
+  const supportedFormats = ['mp3', 'wav', 'm4a'];
+  const fileExtension = path.extname(filePath).toLowerCase().slice(1);  // מקבל את הסיומת של הקובץ
+
+  if (supportedFormats.includes(fileExtension)) {
+    console.log('Supported audio format:', fileExtension);
+    return true;
+  } else {
+    console.error('Unsupported audio format:', fileExtension);
+    return false;
+  }
+}
