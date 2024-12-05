@@ -657,217 +657,134 @@ function updateProgressBarSmoothly(currentChunk, totalChunks, estimatedTime) {
 // פונקציה שמתחילה את תהליך זיהוי הדוברים
 function showSpeakerSegmentationModal() {
     openModal('speakerSegmentationModal');
-    startSpeakerSegmentation(); // התחלת התהליך של זיהוי הדוברים
+    startProcess(); // התחלת התהליך של זיהוי הדוברים
 }
 
 
+async function startProcess() {
+    const audioFile = document.getElementById('audio-file').files[0];  // הקובץ כבר נמצא כאן
+    const uploadBtn = document.getElementById('upload-btn');  // במידה וצריך להפעיל כפתור, זה כאן
 
-async function startSpeakerSegmentation() {
-    let apiKey = localStorage.getItem('pyannoteApiKey');
-    if (!apiKey) {
-        apiKey = prompt('אנא הזן את מפתח ה-API של PyAnnote:');
-        if (!apiKey) {
-            alert('מפתח API נדרש לצורך המשך התהליך.');
-            return;
-        }
-        localStorage.setItem('pyannoteApiKey', apiKey);
-    }
-
-    const audioFile = document.getElementById('audioFile').files[0];
     if (!audioFile) {
-        alert('אנא בחר קובץ להעלאה.');
+        showStatus('נא לבחור קובץ אודיו', 'error');
         return;
     }
 
-    const segmentationResultElement = document.getElementById("segmentationResult");
-    segmentationResultElement.textContent = "מתחיל בהעלאת הקובץ... נא להמתין.";
+    uploadBtn.disabled = true;
+    showStatus('מעלה את הקובץ...', 'info');
 
     try {
-        // שלב 1: העלאת קובץ
-        const uploadUrl = await uploadMediaFile(audioFile, apiKey);
+        // שליחת הקובץ לפונקציה בשרת
+        const formData = new FormData();
+        formData.append('file', audioFile);
 
-        segmentationResultElement.textContent = "הקובץ הועלה בהצלחה. מתחיל תהליך זיהוי הדוברים...";
+        const response = await fetch('/.netlify/functions/diarize', {
+            method: 'POST',
+            body: formData
+        });
 
-        // שלב 2: התחלת תהליך הזיהוי
-        const jobId = await sendToSpeakerDiarization(uploadUrl, apiKey);
-        if (!jobId) {
-            throw new Error('נכשל בהתחלת תהליך זיהוי הדוברים.');
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(`שגיאת שרת: ${JSON.stringify(data, null, 2)}`);
         }
 
-        // שלב 3: קבלת תוצאות
-        const diarizationData = await getDiarizationResult(jobId, apiKey);
-        if (!diarizationData) {
-            throw new Error('נכשל בקבלת נתוני הדיאריזציה.');
+        const data = await response.json();
+        
+        if (data.jobId) {
+            currentJobId = data.jobId;
+            showStatus('הקובץ הועלה בהצלחה! מעבד את הקובץ...', 'info');
+            startStatusCheck(); // התחל לבדוק את הסטטוס
+        } else {
+            throw new Error('לא התקבל מזהה עבודה');
         }
 
-        // שלב 4: הצגת תוצאות
-        displaySpeakerSegmentationResults(diarizationData);
-
-        segmentationResultElement.textContent = "תהליך זיהוי הדוברים הושלם בהצלחה!";
     } catch (error) {
-        console.error('שגיאה במהלך תהליך זיהוי הדוברים:', error);
-        segmentationResultElement.textContent = "שגיאה במהלך תהליך זיהוי הדוברים. נא לנסות שוב.";
+        console.error('Error:', error);
+        showStatus(`שגיאה: ${error.message}`, 'error');
+        uploadBtn.disabled = false;
     }
 }
 
 
+function startStatusCheck() {
+    if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+    }
 
-async function uploadMediaFile(audioFile, apiKey) {
-    const fileBuffer = audioFile;
-    const objectKey = `audio_${Date.now()}`.replace(/[^a-zA-Z0-9]/g, '');
-    const mediaUrl = `media://${objectKey}`;
-
-    const response = await axios.post('https://api.pyannote.ai/v1/media/input', 
-        { url: mediaUrl },
-        {
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            }
-        }
-    );
-
-    await axios.put(response.data.url, fileBuffer, {
-        headers: {
-            'Content-Type': 'audio/mpeg'
-        }
-    });
-
-    return mediaUrl;  // מחזיר את URL להעלאה
+    // התחלת לולאת בדיקת הסטטוס כל 5 שניות
+    statusCheckInterval = setInterval(checkStatus, 5000);
 }
 
 
 
-async function sendToSpeakerDiarization(mediaUrl, apiKey) {
-    const webhookUrl = `${process.env.URL}/.netlify/functions/diarize-webhook`;
-    const diarizeResponse = await axios.post('https://api.pyannote.ai/v1/diarize',
-        {
-            url: mediaUrl,
-            webhook: webhookUrl
-        },
-        {
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            }
-        }
-    );
+async function checkStatus() {
+    if (!currentJobId) return;
 
-    return diarizeResponse.data.jobId;  // מחזיר את jobId
-}
-
-
-
-async function getDiarizationResult(jobId, apiKey) {
-    const response = await fetch(`/.netlify/functions/check-status?jobId=${jobId}`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    });
-
-    if (response.ok) {
+    try {
+        const response = await fetch(`/.netlify/functions/check-status?jobId=${currentJobId}`);
         const data = await response.json();
 
         if (data.status === 'succeeded') {
-            console.log('Diarization completed successfully');
-            return data.output.diarization;  // מחזיר את תוצאות הזיהוי
+            clearInterval(statusCheckInterval);
+            showStatus('העיבוד הושלם בהצלחה!', 'success');
+            displayResults(data.output);  // הצגת התוצאות המתקבלות
+            document.getElementById('upload-btn').disabled = false;
+            currentJobId = null;
+        } else if (data.status === 'failed' || data.status === 'canceled') {
+            clearInterval(statusCheckInterval);
+            showStatus(`העיבוד נכשל: ${data.error || 'שגיאה לא ידועה'}`, 'error');
+            document.getElementById('upload-btn').disabled = false;
+            currentJobId = null;
         } else {
-            console.log('Diarization is still in progress...', data);
-            return null;  // אם הזיהוי עדיין בתהליך
+            showStatus(`מעבד את הקובץ... סטטוס: ${data.status}`, 'info');
         }
-    } else {
-        console.error('Error checking diarization status:', await response.text());
-        return null;  // במידה ויש בעיה בבקשה
+    } catch (error) {
+        console.error('Error checking status:', error);
+        showStatus('שגיאה בבדיקת סטטוס העיבוד', 'error');
     }
 }
 
 
 
-function mergeDiarizationWithText(diarizationData, transcriptionData) {
-    let mergedData = [];
-    let diarizationIndex = 0;
-    let transcriptionIndex = 0;
-
-    // חיבור בין סגמנטי זיהוי הדוברים וסגמנטי הטקסט
-    while (diarizationIndex < diarizationData.length && transcriptionIndex < transcriptionData.length) {
-        const diarizationSegment = diarizationData[diarizationIndex];
-        const transcriptionSegment = transcriptionData[transcriptionIndex];
-
-        // בדיקה אם חותמת הזמן של סגמנט הטקסט נופלת בתוך טווח הזמן של סגמנט זיהוי הדובר
-        if (isSegmentWithinTimeRange(diarizationSegment, transcriptionSegment)) {
-            // אם כן, מאחדים את הסגמנטים
-            mergedData.push({
-                start: diarizationSegment.start,
-                end: diarizationSegment.end,
-                text: transcriptionSegment.text,
-                speaker: diarizationSegment.label // זיהוי הדובר
-            });
-            transcriptionIndex++;
-        } else {
-            // אם סגמנט הטקסט נמצא לפני זיהוי הדובר, מקדם את אינדקס הטקסט
-            transcriptionIndex++;
-        }
+function displayResults(results) {
+    const resultsDiv = document.getElementById('results');
+    if (!results || !results.diarization) {
+        resultsDiv.textContent = 'לא נמצאו תוצאות';
+        resultsDiv.style.display = 'block';
+        return;
     }
 
-    return mergedData;
-}
+    resultsDiv.innerHTML = '<h3>תוצאות זיהוי הדוברים:</h3>';
 
-function isSegmentWithinTimeRange(diarizationSegment, transcriptionSegment) {
-    const diarizationStart = diarizationSegment.start;
-    const diarizationEnd = diarizationSegment.end;
-    const transcriptionStart = parseTimestamp(transcriptionSegment.timestamp.split(' --> ')[0]);
-    const transcriptionEnd = parseTimestamp(transcriptionSegment.timestamp.split(' --> ')[1]);
-
-    // אם טווח הזמן של סגמנט הטקסט נמצא בתוך טווח הזמן של סגמנט זיהוי הדובר
-    return transcriptionStart >= diarizationStart && transcriptionEnd <= diarizationEnd;
-}
-
-function parseTimestamp(timestamp) {
-    const [hours, minutes, seconds] = timestamp.split(':');
-    const [secs, millis] = seconds.split(',');
-    return (
-        parseInt(hours) * 3600 +
-        parseInt(minutes) * 60 +
-        parseInt(secs) +
-        parseInt(millis) / 1000
-    );
-}
-
-
-
-function displaySpeakerSegmentationResults(diarizationData) {
-    const segmentationResultElement = document.getElementById('segmentationResult');
-    segmentationResultElement.innerHTML = ''; // איפוס התוכן הקיים במודאל
-
-    diarizationData.forEach(segment => {
-        const startTime = formatTimestamp(segment.start);  // תיאור זמן התחלה
-        const endTime = formatTimestamp(segment.end);      // תיאור זמן סיום
-        const text = segment.text.trim();                  // התמלול של הסגמנט
-
-        // הוספת התוצאה למודאל
-        segmentationResultElement.innerHTML += `
-            [${startTime} - ${endTime}] ${text}<br><br>
+    results.diarization.forEach(segment => {
+        const segmentDiv = document.createElement('div');
+        segmentDiv.className = 'speaker-segment';
+        segmentDiv.innerHTML = `
+            <strong>${segment.speaker}</strong><br>
+            ${formatTime(segment.start)} - ${formatTime(segment.end)}
         `;
+        resultsDiv.appendChild(segmentDiv);
     });
 
-    // הצגת המודאל עם התוצאות
-    openModal('speakerSegmentationModal');
+    resultsDiv.style.display = 'block';
 }
 
 
 
-function formatTimestamp(seconds) {
-    const date = new Date(seconds * 1000);
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    const secs = String(date.getUTCSeconds()).padStart(2, '0');
-    const millis = String(date.getUTCMilliseconds()).padStart(3, '0');
-    return `${hours}:${minutes}:${secs},${millis}`;
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = (seconds % 60).toFixed(1);
+    return `${minutes}:${remainingSeconds.padStart(4, '0')}`;
 }
 
 
 
+function showStatus(message, type) {
+    const statusDiv = document.getElementById('status');
+    statusDiv.innerHTML = ` ${type === 'info' ? '<span class="loading"></span>' : ''} ${message} `;
+    statusDiv.className = `status-${type}`;
+    statusDiv.style.display = 'block';
+}
 
 
 
