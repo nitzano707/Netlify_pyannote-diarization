@@ -21,8 +21,8 @@ exports.handler = async function(event, context) {
       .update(signedContent)
       .digest('hex');
 
-    console.log('Expected Signature:', expectedSignature);
-    console.log('Received Signature:', signature);
+    console.log('Calculated signature:', expectedSignature);
+    console.log('Received signature:', signature);
 
     if (signature !== expectedSignature) {
       console.error('Invalid webhook signature');
@@ -38,7 +38,7 @@ exports.handler = async function(event, context) {
     console.log('Webhook data:', webhookData);
 
     // אחסון התוצאות בקובץ או במסד נתונים
-    // כאן אפשר להוסיף קוד שישמור את התוצאות
+    // אפשר להוסיף כאן קוד שמנהל את הנתונים
 
     return {
       statusCode: 200,
@@ -54,7 +54,7 @@ exports.handler = async function(event, context) {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Error processing webhook', details: error.message })
+      body: JSON.stringify({ error: 'Error processing webhook' })
     };
   }
 };
