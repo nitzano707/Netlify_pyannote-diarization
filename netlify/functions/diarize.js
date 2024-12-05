@@ -1,11 +1,9 @@
 const axios = require('axios');
 const FormData = require('form-data');
-const fs = require('fs');
-const path = require('path');
-const { exec } = require('child_process');
 
 exports.handler = async function(event, context) {
   console.log('Function started');
+
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -24,31 +22,21 @@ exports.handler = async function(event, context) {
       throw new Error('API key not configured');
     }
 
+    // בדיקה שקיבלנו קובץ
     if (!event.isBase64Encoded || !event.body) {
       throw new Error('No file was uploaded');
     }
 
+    // המרת הקובץ מ-base64
     const fileBuffer = Buffer.from(event.body, 'base64');
     console.log('Received file of size:', fileBuffer.length);
 
+    // יצירת מזהה ייחודי
     const objectKey = `audio_${Date.now()}`.replace(/[^a-zA-Z0-9]/g, '');
     const mediaUrl = `media://${objectKey}`;
     console.log('Using media URL:', mediaUrl);
 
-    const filePath = path.join('/tmp', `${objectKey}.mp3`);
-    fs.writeFileSync(filePath, fileBuffer);
-
-    const isSupported = await checkAudioFormat(filePath);
-    if (!isSupported) {
-      throw new Error('Unsupported audio format');
-    }
-
-    const fileSizeMB = fs.statSync(filePath).size / (1024 * 1024);
-    if (fileSizeMB > 10) {
-      console.log('Compressing file to reduce size');
-      await compressFile(filePath);
-    }
-
+    // קבלת URL זמני מ-pyannote
     const response = await axios.post('https://api.pyannote.ai/v1/media/input', 
       { url: mediaUrl },
       {
@@ -61,7 +49,8 @@ exports.handler = async function(event, context) {
 
     console.log('Got temporary URL:', response.data.url);
 
-    await axios.put(response.data.url, fs.createReadStream(filePath), {
+    // העלאת הקובץ
+    await axios.put(response.data.url, fileBuffer, {
       headers: {
         'Content-Type': 'audio/mpeg'
       }
@@ -69,6 +58,7 @@ exports.handler = async function(event, context) {
 
     console.log('File uploaded successfully');
 
+    // התחלת תהליך הזיהוי
     const webhookUrl = `${process.env.URL}/.netlify/functions/diarize-webhook`;
     const diarizeResponse = await axios.post('https://api.pyannote.ai/v1/diarize',
       {
@@ -108,17 +98,3 @@ exports.handler = async function(event, context) {
     };
   }
 };
-
-// פונקציה בודקת אם הפורמט של הקובץ נתמך
-async function checkAudioFormat(filePath) {
-  const supportedFormats = ['mp3', 'wav', 'm4a'];
-  const fileExtension = path.extname(filePath).toLowerCase().slice(1);  // מקבל את הסיומת של הקובץ
-
-  if (supportedFormats.includes(fileExtension)) {
-    console.log('Supported audio format:', fileExtension);
-    return true;
-  } else {
-    console.error('Unsupported audio format:', fileExtension);
-    return false;
-  }
-}
