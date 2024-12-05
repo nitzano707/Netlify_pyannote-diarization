@@ -1,8 +1,9 @@
 [build]
   functions = "netlify/functions"  # מגדיר את התיקייה שבה יאוחסנו פונקציות השרת של Netlify.
-  publish = "/public"  # מגדיר שהתוכן המפורסם (האתר שלך) נמצא בתיקיית השורש.
+  publish = "public"  # מגדיר שהתוכן המפורסם (האתר שלך) נמצא בתיקיית public, ולא בתיקיית השורש.
 
 [[redirects]]
   from = "/*"  # כל בקשה לכל נתיב (לא משנה איזה נתיב)
-  to = "/index.html"  # תועבר ל-index.html שלך
+  to = "/index.html"  # תועבר ל-index.html שבתיקיית public
   status = 200  # מצב של ההפניה הוא 200, כלומר ההפניה תהיה חוקית ולא תגרום לשגיאה.
+
