@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>זיהוי דוברים בקובץ אודיו</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .status-info {
+            background-color: #e6f3ff;
+        }
+        .status-success {
+            background-color: #e6ffe6;
+        }
+        .status-error {
+            background-color: #ffe6e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>זיהוי דוברים בקובץ אודיו</h1>
+        
+        <div class="form-group">
+            <label for="audio-file">בחר קובץ אודיו:</label>
+            <input type="file" id="audio-file" accept="audio/*" required>
+        </div>
+
+        <button id="upload-btn" class="button" onclick="startProcess()">התחל תהליך זיהוי</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        async function startProcess() {
+            const audioFile = document.getElementById('audio-file').files[0];
+            const uploadBtn = document.getElementById('upload-btn');
+            const statusDiv = document.getElementById('status');
+
+            if (!audioFile) {
+                showStatus('נא לבחור קובץ אודיו', 'error');
+                return;
+            }
+
+            uploadBtn.disabled = true;
+            
+            try {
+                // Get temporary upload URL
+                showStatus('מקבל קישור להעלאה...', 'info');
+                const response = await fetch('/.netlify/functions/diarize', {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`שגיאת שרת: ${response.status}`);
+                }
+
+                const data = await response.json();
+                showStatus('קיבלנו קישור להעלאה: ' + data.url, 'success');
+                
+                // Here you would continue with the upload process
+                // Will add this in the next iteration
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus(`שגיאה: ${error.message}`, 'error');
+            } finally {
+                uploadBtn.disabled = false;
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-${type}`;
+            statusDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
