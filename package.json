@@ -2,6 +2,17 @@
   "name": "pyannote-diarization",
   "version": "1.0.0",
   "description": "Audio diarization with pyannote.ai",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "audio",
+    "diarization",
+    "pyannote"
+  ],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
     "@netlify/functions": "^2.0.0",
     "axios": "^1.6.2",
