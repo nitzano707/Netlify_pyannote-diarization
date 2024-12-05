@@ -5,72 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>זיהוי דוברים בקובץ אודיו</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 0 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-        }
-        .button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        #status {
-            margin-top: 10px;
+        /* ... הסגנונות הקודמים ... */
+        .results {
+            margin-top: 20px;
             padding: 10px;
+            border: 1px solid #ddd;
             border-radius: 4px;
-        }
-        .status-info {
-            background-color: #e6f3ff;
-            border: 1px solid #b3d7ff;
-        }
-        .status-success {
-            background-color: #e6ffe6;
-            border: 1px solid #b3ffb3;
-        }
-        .status-error {
-            background-color: #ffe6e6;
-            border: 1px solid #ffb3b3;
-        }
-        .progress {
-            margin-top: 10px;
-            width: 100%;
-            height: 20px;
-            background-color: #f0f0f0;
-            border-radius: 4px;
-            overflow: hidden;
             display: none;
         }
-        .progress-bar {
-            height: 100%;
-            background-color: #4CAF50;
-            width: 0;
-            transition: width 0.3s;
+        .speaker-segment {
+            margin: 5px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-right: 4px solid #4CAF50;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -85,19 +47,17 @@
 
         <button id="upload-btn" class="button" onclick="startProcess()">התחל תהליך זיהוי</button>
         
-        <div class="progress">
-            <div class="progress-bar"></div>
-        </div>
-
         <div id="status"></div>
+        <div id="results" class="results"></div>
     </div>
 
     <script>
+        let statusCheckInterval = null;
+        let currentJobId = null;
+
         async function startProcess() {
             const audioFile = document.getElementById('audio-file').files[0];
             const uploadBtn = document.getElementById('upload-btn');
-            const progressBar = document.querySelector('.progress');
-            const progressBarFill = document.querySelector('.progress-bar');
 
             if (!audioFile) {
                 showStatus('נא לבחור קובץ אודיו', 'error');
@@ -105,41 +65,110 @@
             }
 
             uploadBtn.disabled = true;
-            progressBar.style.display = 'block';
+            showStatus('מעלה את הקובץ...', 'info');
             
             try {
-                // יצירת FormData עם הקובץ
+                // העלאת הקובץ והתחלת התהליך
                 const formData = new FormData();
                 formData.append('file', audioFile);
 
-                showStatus('מעלה את הקובץ...', 'info');
-
-                // שליחת הקובץ לפונקציית Netlify
                 const response = await fetch('/.netlify/functions/diarize', {
                     method: 'POST',
                     body: formData
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`שגיאת שרת: ${JSON.stringify(errorData, null, 2)}`);
+                    const data = await response.json();
+                    throw new Error(`שגיאת שרת: ${JSON.stringify(data, null, 2)}`);
                 }
 
                 const data = await response.json();
-                showStatus('הקובץ הועלה בהצלחה! תהליך הזיהוי החל...', 'success');
+                
+                if (data.jobId) {
+                    currentJobId = data.jobId;
+                    showStatus('הקובץ הועלה בהצלחה! מעבד את הקובץ...', 'info');
+                    startStatusCheck();
+                } else {
+                    throw new Error('לא התקבל מזהה עבודה');
+                }
                 
             } catch (error) {
                 console.error('Error:', error);
                 showStatus(`שגיאה: ${error.message}`, 'error');
-            } finally {
                 uploadBtn.disabled = false;
-                progressBar.style.display = 'none';
             }
+        }
+
+        function startStatusCheck() {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+            }
+
+            statusCheckInterval = setInterval(checkStatus, 5000);
+        }
+
+        async function checkStatus() {
+            if (!currentJobId) return;
+
+            try {
+                const response = await fetch(`/.netlify/functions/check-status?jobId=${currentJobId}`);
+                const data = await response.json();
+
+                if (data.status === 'succeeded') {
+                    clearInterval(statusCheckInterval);
+                    showStatus('העיבוד הושלם בהצלחה!', 'success');
+                    displayResults(data.output);
+                    document.getElementById('upload-btn').disabled = false;
+                    currentJobId = null;
+                } else if (data.status === 'failed' || data.status === 'canceled') {
+                    clearInterval(statusCheckInterval);
+                    showStatus(`העיבוד נכשל: ${data.error || 'שגיאה לא ידועה'}`, 'error');
+                    document.getElementById('upload-btn').disabled = false;
+                    currentJobId = null;
+                } else {
+                    showStatus(`מעבד את הקובץ... סטטוס: ${data.status}`, 'info');
+                }
+            } catch (error) {
+                console.error('Error checking status:', error);
+                showStatus('שגיאה בבדיקת סטטוס העיבוד', 'error');
+            }
+        }
+
+        function displayResults(results) {
+            const resultsDiv = document.getElementById('results');
+            if (!results || !results.diarization) {
+                resultsDiv.textContent = 'לא נמצאו תוצאות';
+                resultsDiv.style.display = 'block';
+                return;
+            }
+
+            resultsDiv.innerHTML = '<h3>תוצאות זיהוי הדוברים:</h3>';
+            
+            results.diarization.forEach(segment => {
+                const segmentDiv = document.createElement('div');
+                segmentDiv.className = 'speaker-segment';
+                segmentDiv.innerHTML = `
+                    <strong>${segment.speaker}</strong><br>
+                    ${formatTime(segment.start)} - ${formatTime(segment.end)}
+                `;
+                resultsDiv.appendChild(segmentDiv);
+            });
+            
+            resultsDiv.style.display = 'block';
+        }
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = (seconds % 60).toFixed(1);
+            return `${minutes}:${remainingSeconds.padStart(4, '0')}`;
         }
 
         function showStatus(message, type) {
             const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
+            statusDiv.innerHTML = `
+                ${type === 'info' ? '<span class="loading"></span>' : ''}
+                ${message}
+            `;
             statusDiv.className = `status-${type}`;
             statusDiv.style.display = 'block';
         }
