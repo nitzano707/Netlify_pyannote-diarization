@@ -1,30 +1,36 @@
 const axios = require('axios');
-const FormData = require('form-data');
 
 exports.handler = async function(event, context) {
+  console.log('Function started');
+
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
+  // בקשת preflight
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers
-    };
+    return { statusCode: 200, headers };
   }
 
   try {
     const apiKey = process.env.PYANNOTE_API_KEY;
-    
+    console.log('API Key exists:', !!apiKey);
+
     if (!apiKey) {
       throw new Error('API key not configured');
     }
 
-    // קבלת URL זמני מ-pyannote
-    const mediaUrl = 'media://nitzantry1';
+    // יצירת URL עבור הקובץ
+    const uniqueId = `file_${Date.now()}`;
+    const mediaUrl = `media://${uniqueId}`;
     
+    // כתובת ה-webhook שלנו - נשתמש באותה פונקציה אבל עם נתיב אחר
+    const webhookUrl = `${process.env.URL}/.netlify/functions/diarize-webhook`;
+    console.log('Webhook URL:', webhookUrl);
+
+    // קבלת URL זמני
     const response = await axios.post('https://api.pyannote.ai/v1/media/input', 
       { url: mediaUrl },
       {
@@ -35,22 +41,14 @@ exports.handler = async function(event, context) {
       }
     );
 
-    // הוצאת ה-URL מהתשובה
-    const uploadUrl = response.data.url;
+    console.log('Got temporary URL:', response.data.url);
 
-    // קבלת הקובץ מהבקשה
-    const fileData = event.body;
-
-    // העלאת הקובץ ל-URL שקיבלנו
-    await axios.put(uploadUrl, fileData, {
-      headers: {
-        'Content-Type': 'audio/mpeg'
-      }
-    });
-
-    // התחלת תהליך הזיהוי
+    // התחלת תהליך הזיהוי עם webhook
     const diarizeResponse = await axios.post('https://api.pyannote.ai/v1/diarize',
-      { url: mediaUrl },
+      {
+        url: mediaUrl,
+        webhook: webhookUrl
+      },
       {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -59,10 +57,17 @@ exports.handler = async function(event, context) {
       }
     );
 
+    console.log('Diarization started:', diarizeResponse.data);
+
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(diarizeResponse.data)
+      body: JSON.stringify({
+        tempUrl: response.data.url,
+        mediaUrl: mediaUrl,
+        jobId: diarizeResponse.data.jobId,
+        message: 'Diarization process started'
+      })
     };
 
   } catch (error) {
