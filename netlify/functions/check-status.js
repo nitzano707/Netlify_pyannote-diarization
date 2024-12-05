@@ -10,6 +10,7 @@ exports.handler = async function(event, context) {
   try {
     const { jobId } = event.queryStringParameters;
     if (!jobId) {
+      console.error('No jobId provided');
       throw new Error('No jobId provided');
     }
 
@@ -21,25 +22,4 @@ exports.handler = async function(event, context) {
       }
     });
 
-    console.log('Status response:', response.data);
-
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(response.data)
-    };
-
-  } catch (error) {
-    console.error('Error checking status:', error);
-    console.error('Error response:', error.response?.data);
-
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ 
-        error: error.message,
-        details: error.response?.data || 'No additional details'
-      })
-    };
-  }
-};
+    console.log('Status
