@@ -7,7 +7,6 @@ exports.handler = async function(event, context) {
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
-  // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -16,19 +15,20 @@ exports.handler = async function(event, context) {
   }
 
   try {
-    // Get API key from environment variable
     const apiKey = process.env.PYANNOTE_API_KEY;
-    console.log('Checking API key format:', apiKey?.substring(0, 5) + '...');  // רק לבדיקה - מציג רק את תחילת המפתח
-
-    if (!apiKey || !apiKey.startsWith('sk_')) {
-      throw new Error('Invalid API key format');
+    
+    if (!apiKey) {
+      throw new Error('API key not configured');
     }
 
-    // Make request to pyannote API
-    console.log('Making request to pyannote API...');
+    // שימוש באותו פורמט בדיוק כמו בדוגמה שלהם
+    const mediaUrl = 'media://nitzantry1';
+
+    console.log('Requesting temporary URL with:', mediaUrl);
+
     const response = await axios.post('https://api.pyannote.ai/v1/media/input', 
       {
-        url: `media://file_${Date.now()}`
+        url: mediaUrl
       },
       {
         headers: {
@@ -38,7 +38,8 @@ exports.handler = async function(event, context) {
       }
     );
 
-    console.log('Received response from pyannote:', response.status);
+    console.log('Response status:', response.status);
+    console.log('Response data:', response.data);
 
     return {
       statusCode: 200,
