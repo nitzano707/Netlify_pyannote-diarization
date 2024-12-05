@@ -10,11 +10,8 @@ exports.handler = async function(event, context) {
   try {
     const { jobId } = event.queryStringParameters;
     if (!jobId) {
-      console.error('No jobId provided');
       throw new Error('No jobId provided');
     }
-
-    console.log('Checking status for jobId:', jobId);
 
     const response = await axios.get(`https://api.pyannote.ai/v1/jobs/${jobId}`, {
       headers: {
@@ -22,4 +19,21 @@ exports.handler = async function(event, context) {
       }
     });
 
-    console.log('Status
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify(response.data)
+    };
+
+  } catch (error) {
+    console.error('Error checking status:', error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ 
+        error: error.message,
+        details: error.response?.data
+      })
+    };
+  }
+};
