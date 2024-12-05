@@ -1,4 +1,5 @@
 const axios = require('axios');
+const FormData = require('form-data');
 
 exports.handler = async function(event, context) {
   console.log('Function started');
@@ -21,19 +22,23 @@ exports.handler = async function(event, context) {
       throw new Error('API key not configured');
     }
 
-    // Generate a simple, URL-safe identifier
-    const objectKey = `audio_${Date.now()}`
-      .replace(/[^a-zA-Z0-9]/g, '')
-      .toLowerCase();
-    
+    // בדיקה שקיבלנו קובץ
+    if (!event.isBase64Encoded || !event.body) {
+      throw new Error('No file was uploaded');
+    }
+
+    // המרת הקובץ מ-base64
+    const fileBuffer = Buffer.from(event.body, 'base64');
+    console.log('Received file of size:', fileBuffer.length);
+
+    // יצירת מזהה ייחודי
+    const objectKey = `audio_${Date.now()}`.replace(/[^a-zA-Z0-9]/g, '');
     const mediaUrl = `media://${objectKey}`;
     console.log('Using media URL:', mediaUrl);
 
-    // Step 1: Get temporary URL
+    // קבלת URL זמני מ-pyannote
     const response = await axios.post('https://api.pyannote.ai/v1/media/input', 
-      { 
-        url: mediaUrl
-      },
+      { url: mediaUrl },
       {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -42,11 +47,19 @@ exports.handler = async function(event, context) {
       }
     );
 
-    console.log('Received response:', response.data);
+    console.log('Got temporary URL:', response.data.url);
 
+    // העלאת הקובץ
+    await axios.put(response.data.url, fileBuffer, {
+      headers: {
+        'Content-Type': 'audio/mpeg'
+      }
+    });
+
+    console.log('File uploaded successfully');
+
+    // התחלת תהליך הזיהוי
     const webhookUrl = `${process.env.URL}/.netlify/functions/diarize-webhook`;
-
-    // Step 2: Start diarization process
     const diarizeResponse = await axios.post('https://api.pyannote.ai/v1/diarize',
       {
         url: mediaUrl,
@@ -60,14 +73,14 @@ exports.handler = async function(event, context) {
       }
     );
 
+    console.log('Diarization started:', diarizeResponse.data);
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        tempUrl: response.data.url,
-        mediaUrl: mediaUrl,
         jobId: diarizeResponse.data.jobId,
-        message: 'Process started successfully'
+        message: 'File uploaded and diarization started'
       })
     };
 
