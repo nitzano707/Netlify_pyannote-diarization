@@ -26,12 +26,6 @@
             margin-bottom: 5px;
             font-weight: bold;
         }
-        .form-group input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
         .button {
             background-color: #4CAF50;
             color: white;
@@ -50,44 +44,23 @@
             margin-top: 10px;
             padding: 10px;
             border-radius: 4px;
+            display: none;
         }
-        .status-info {
-            background-color: #e6f3ff;
-            border: 1px solid #b3d7ff;
-        }
-        .status-success {
-            background-color: #e6ffe6;
-            border: 1px solid #b3ffb3;
-        }
-        .status-error {
-            background-color: #ffe6e6;
-            border: 1px solid #ffb3b3;
-            white-space: pre-wrap;
-        }
-        #debug {
+        .status-info { background-color: #e6f3ff; }
+        .status-success { background-color: #e6ffe6; }
+        .status-error { background-color: #ffe6e6; }
+        .results {
             margin-top: 20px;
             padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: none;
+        }
+        .speaker-segment {
+            margin: 5px 0;
+            padding: 10px;
             background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            font-family: monospace;
-            white-space: pre-wrap;
-            display: none;
-        }
-        .progress {
-            margin-top: 10px;
-            width: 100%;
-            height: 20px;
-            background-color: #f0f0f0;
-            border-radius: 4px;
-            overflow: hidden;
-            display: none;
-        }
-        .progress-bar {
-            height: 100%;
-            background-color: #4CAF50;
-            width: 0;
-            transition: width 0.3s;
+            border-left: 4px solid #4CAF50;
         }
     </style>
 </head>
@@ -102,20 +75,17 @@
 
         <button id="upload-btn" class="button" onclick="startProcess()">התחל תהליך זיהוי</button>
         
-        <div class="progress">
-            <div class="progress-bar"></div>
-        </div>
-
         <div id="status"></div>
-        <div id="debug"></div>
+        <div id="results" class="results"></div>
     </div>
 
     <script>
+        let jobId = null;
+        let statusCheckInterval = null;
+
         async function startProcess() {
             const audioFile = document.getElementById('audio-file').files[0];
             const uploadBtn = document.getElementById('upload-btn');
-            const progressBar = document.querySelector('.progress');
-            const progressBarFill = document.querySelector('.progress-bar');
 
             if (!audioFile) {
                 showStatus('נא לבחור קובץ אודיו', 'error');
@@ -123,39 +93,43 @@
             }
 
             uploadBtn.disabled = true;
-            progressBar.style.display = 'block';
+            showStatus('מתחיל תהליך זיהוי...', 'info');
             
             try {
-                // העלאת הקובץ דרך הפונקציה שלנו
-                showStatus('מעלה את הקובץ...', 'info');
-                
-                const formData = new FormData();
-                formData.append('file', audioFile);
-
+                // שלב 1: קבלת URL זמני
                 const response = await fetch('/.netlify/functions/diarize', {
-                    method: 'POST',
-                    body: formData
+                    method: 'POST'
                 });
 
                 const data = await response.json();
                 
                 if (!response.ok) {
-                    throw new Error(`שגיאת שרת: ${response.status}\nפרטים: ${JSON.stringify(data, null, 2)}`);
+                    throw new Error(`שגיאת שרת: ${JSON.stringify(data, null, 2)}`);
                 }
 
-                showStatus('הקובץ הועלה בהצלחה! מתחיל תהליך זיהוי דוברים...', 'success');
-                
-                // כאן נוסיף את הטיפול בתשובה מהשרת
-                if (data.jobId) {
-                    showStatus(`הזיהוי החל! מזהה עבודה: ${data.jobId}`, 'success');
+                showStatus('התקבל URL להעלאה, מעלה את הקובץ...', 'info');
+
+                // שלב 2: העלאת הקובץ
+                await fetch(data.tempUrl, {
+                    method: 'PUT',
+                    body: audioFile,
+                    headers: {
+                        'Content-Type': audioFile.type
+                    }
+                });
+
+                showStatus('הקובץ הועלה בהצלחה! ממתין לתוצאות...', 'success');
+                jobId = data.jobId;
+
+                // התחלת בדיקת סטטוס
+                if (jobId) {
+                    startStatusCheck();
                 }
                 
             } catch (error) {
                 console.error('Error:', error);
                 showStatus(`שגיאה: ${error.message}`, 'error');
-            } finally {
                 uploadBtn.disabled = false;
-                progressBar.style.display = 'none';
             }
         }
 
@@ -164,6 +138,52 @@
             statusDiv.textContent = message;
             statusDiv.className = `status-${type}`;
             statusDiv.style.display = 'block';
+        }
+
+        function displayResults(results) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<h3>תוצאות זיהוי הדוברים:</h3>';
+            
+            results.diarization.forEach(segment => {
+                const segmentDiv = document.createElement('div');
+                segmentDiv.className = 'speaker-segment';
+                segmentDiv.innerHTML = `
+                    <strong>${segment.speaker}</strong><br>
+                    ${formatTime(segment.start)} - ${formatTime(segment.end)}
+                `;
+                resultsDiv.appendChild(segmentDiv);
+            });
+            
+            resultsDiv.style.display = 'block';
+        }
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = (seconds % 60).toFixed(1);
+            return `${minutes}:${remainingSeconds.padStart(4, '0')}`;
+        }
+
+        async function startStatusCheck() {
+            // בדיקת סטטוס כל 5 שניות
+            statusCheckInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/.netlify/functions/check-status?jobId=${jobId}`);
+                    const data = await response.json();
+
+                    if (data.status === 'succeeded') {
+                        clearInterval(statusCheckInterval);
+                        showStatus('הזיהוי הושלם בהצלחה!', 'success');
+                        displayResults(data.output);
+                        document.getElementById('upload-btn').disabled = false;
+                    } else if (data.status === 'failed' || data.status === 'canceled') {
+                        clearInterval(statusCheckInterval);
+                        showStatus(`התהליך נכשל: ${data.error || 'שגיאה לא ידועה'}`, 'error');
+                        document.getElementById('upload-btn').disabled = false;
+                    }
+                } catch (error) {
+                    console.error('Error checking status:', error);
+                }
+            }, 5000);
         }
     </script>
 </body>
