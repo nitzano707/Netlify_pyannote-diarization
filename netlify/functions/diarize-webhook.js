@@ -21,6 +21,9 @@ exports.handler = async function(event, context) {
       .update(signedContent)
       .digest('hex');
 
+    console.log('Expected Signature:', expectedSignature);
+    console.log('Received Signature:', signature);
+
     if (signature !== expectedSignature) {
       console.error('Invalid webhook signature');
       return {
@@ -51,7 +54,7 @@ exports.handler = async function(event, context) {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Error processing webhook' })
+      body: JSON.stringify({ error: 'Error processing webhook', details: error.message })
     };
   }
 };
