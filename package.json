@@ -4,6 +4,7 @@
   "description": "Audio diarization with pyannote.ai",
   "dependencies": {
     "@netlify/functions": "^2.0.0",
-    "axios": "^1.6.2"
+    "axios": "^1.6.2",
+    "form-data": "^4.0.0"
   }
 }
