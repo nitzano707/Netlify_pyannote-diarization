@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <!-- Google tag (gtag.js) -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-V3RD4C87HK"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+        
+          gtag('config', 'G-V3RD4C87HK');
+        </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta property="og:title" content="Tamleli - תמלול אודיו בעברית בחינם">
+    <meta property="og:description" content="תמלול חינמי ומדויק של קבצי אודיו בפורמטים MP3, WAV, M4A או MP4 לעברית באמצעות בינה מלאכותית. השירות קל לשימוש ותומך בפרטיות מלאה.">
+    <meta property="og:image" content="assets/og-image.png"> <!-- ודא שהתמונה קיימת -->
+    <meta property="og:url" content="https://tamleli.netlify.app">
+    <meta property="og:type" content="website">
+
+        <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Tamleli",
+      "url": "https://tamleli.netlify.app",
+      "description": "כלי חינמי לתמלול קבצי אודיו לעברית בפורמטים MP3, WAV, M4A ו MP4 באמצעות בינה מלאכותית.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "Tamleli",
+        "logo": "https://tamleli.netlify.app/assets/favicon.png"
+      }
+    }
+    </script>
+
+    
+    <link rel="icon" href="assets/favicon.png" type="image/png">
+
+    <title>Tamleli - תמללי | פתרון מהיר לתמלול אודיו לעברית</title>
+
+    <meta name="description" content="תמלול מהיר ומדויק של קבצי אודיו לעברית (MP3, WAV, M4A, MP4) בחינם באמצעות בינה מלאכותית. עיבוד מאובטח, קל לתפעול ומהיר."> 
+    <meta name="keywords" content="תמלול אודיו לעברית, תמלול MP3 בעברית, תמלול WAV בעברית, תמלול M4A בעברית, תמלול בעברית, המרת דיבור לטקסט, AI תמלול, תמלול בחינם, תמלול MP4 לעברית, כלי תמלול בעברית">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- לוגו -->
+    <div class="logo-container">
+        <img src="assets/logo.png" alt="לוגו" class="logo">
+    </div>
+   <a href="about.html">שאלות נפוצות ומידע נוסף</a>
+
+    <h1>ברוכים הבאים ל"תמללי" – Tamleli <br> אפליקציית תמלול אודיו חינמית בעברית!</h1>
+    <h2>מתאימה לכל סוגי המכשירים – מחשבים, סמארטפונים, אייפדים וטאבלטים</h2>
+    <div class="content-container">
+        <div class="video-container">
+            <iframe width="100%" height="auto" src="https://www.youtube.com/embed/Ly1n7SoH4e4?si=IzUGHGDqwQpjXB3k" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+        <div class="text-container">
+            
+            <p>תַּמְלֵלי מיועדת לתמלול אודיו בצורה מהירה, מדויקת ונוחה, ותומכת בקבצים בפורמטים <strong>MP3</strong> | <strong>WAV</strong>  | <strong>M4A</strong> | <strong>MP4</strong>. תוך זמן קצר תוכלו לקבל תמלול כתוב בפורמטים שונים – טקסט רגיל או כתוביות (SRT).</p>
+            <p>תַּמְלֵלִי מתאימה לתמלול קבצי אודיו מכל גודל, כולל יכולת לפצל שיחות בין דוברים שונים, ומאפשרת להעתיק ולהוריד את התמלול בפורמט המועדף עליכם.</p>
+            <p>אפליקציית תַּמְלֵלִי נבנתה במיוחד עבורכם – פשוטה, מהירה ונגישה, לתמלול בעברית <strong>ללא עלות</strong>.</p>
+        </div>
+    </div>
+
+
+
+    <!-- אזור הזנת API -->
+    <div id="apiRequest" style="display:none;">
+        <label for="apiKeyInput">הזן את ה-API מ-GROQ:</label>
+        <input type="password" id="apiKeyInput">
+        <button onclick="saveApiKey()"><i class="fas fa-save"></i> שמור</button>
+        <p class="explanation-text">
+            קוד ה-API ניתן להפקה בחינם מאתר GROQ. תהליך זה הוא חד-פעמי ונועד כדי לאפשר לכם גישה למודל התמלול. 
+            לאחר הפעם הראשונה שתזינו את הקוד, הוא יישמר במחשב שלכם, ובכניסות הבאות לא תצטרכו להקליד אותו שוב.
+        </p>
+
+        <!-- הוראות לקבלת קוד API -->
+       <div class="instructions-container">
+
+            <div class="video-api-container">
+            <iframe width="100%" height="auto" src="https://www.youtube.com/embed/H675hQEzZNk?si=E_1IQ7E8fiQF1dGX" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+            
+            <h3>כיצד לקבל בחינם קוד API אישי לשימוש באפליקציית התמלול ?</h3>
+            <div class="instruction-item">
+                <img src="assets/api_step1.png" alt="שלב 1">
+                <p>א. היכנסו לגוגל והקלידו : Groq cloud
+                או היכנסו ישירות לקישור <a href = "https://console.groq.com/login" target=_blank>https://console.groq.com/login</a>
+                </p>
+            </div>
+            <div class="instruction-item">
+                <img src="assets/api_step2.png" alt="שלב 2">
+                <p>ב. התחברו עם חשבון האימייל (ג'ימייל שלכם)</p>
+            </div>
+            <div class="instruction-item">
+                <img src="assets/api_step3.png" alt="שלב 3">
+                <p>ג. מהתפריט, בחרו: API Keys</p>
+            </div>
+            <div class="instruction-item">
+                <img src="assets/api_step4.png" alt="שלב 4">
+                <p>ד. לחצו על יצירת קוד API אישי (חינם!)</p>
+            </div>
+            <div class="instruction-item">
+                <img src="assets/api_step5.png" alt="שלב 5">
+                <p>ה. הקלידו כאן שם כלשהו עבור הקוד שלכם (לדוגמה, IVRIT) ואחר מכן לחצו על Submit</p>
+            </div>
+            <div class="instruction-item">
+                <img src="assets/api_step6.png" alt="שלב 6">
+                <p>ו. יש להעתיק את הקוד הארוך המופיע בתוך תיבת הטקסט. זה הקוד האישי שלכם שאותו תדביקו באפליקציה. לחצו על הלחצן Copy ולאחר מכן לחצו על הלחצן Done. מומלץ לשלוח לעצמכם את הקוד הזה (למשל לווצאפ או לאימייל) כדי שבמידת הצורך תוכלו לחזור אליו. אם הקוד הלך לאיבוד - לא נורא. ניתן ליצור קוד נוסף בחינם.</p>
+            </div>
+            <div class="instruction-item">
+                <img src="assets/api_step7.png" alt="שלב 7">
+                    <p>ז. חזרו לאפליקציה, הדביקו את הקוד האישי שלכם במקום המתאים ולחצו על "שמור". ברוכים הבאים!! אתם יכולים להתחיל כעת בתהליך התמלול האוטומטי. מהפעם הבאה שתפתחו את האפליקציה – תגיעו מיד למסך התמלול ללא צורך בהזנת הקוד האישי</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- כפתור ראשי לפתיחת התהליך -->
+    <div class="button-container">
+        <button id="startProcessBtn" onclick="openModal('modal1')" style="display:none;"><i class="fas fa-play"></i> התחל תהליך</button>
+    </div>
+
+    <!-- מודאל ראשון להעלאת קובץ -->
+    <div id="modal1" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modal1')">&times;</span>
+            <div class="modal-body">
+                <p class="instruction-text">על מנת להתחיל את תהליך התמלול, יש להעלות קובץ אודיו וללחוץ על לחצן "הבא".</p>
+                <p>פורמטים נתמכים כרגע: WAV או MP3 (ללא מגבלת גודל), וכן M4A או MP4 (עד 24MB)
+                    <BR>
+                        <span style="font-size: 0.9em;">
+                        *אם ברשותכם קובץ בפורמט אחר או MP4 או M4A   שחורג מ 24MB – תוכלו להמיר אותם ל MP3 
+                            <a href=" https://online-audio-converter.com/#google_vignette " target=_blank>
+                                כאן
+                            </a>
+                        </span>
+                </p>
+
+                <p>
+                     <span style="font-size: 0.9em;">
+                        <a href="https://d3ctxlq1ktw2nl.cloudfront.net/staging/2024-1-3/d981e7c1-a794-7339-863c-412225a4d030.mp3" target=_blanlk>רוצים להתנסות בקובץ אודיו לתמלול? הורידו מכאן</a>
+                     </span>
+                </p>
+                <br>
+                <input type="file" id="audioFile" accept=".mp3, .wav, .m4a, .mp4" style="display:none;">
+                <button onclick="triggerFileUpload()"><i class="fas fa-upload"></i> לחץ להעלאת קובץ אודיו</button>
+                <span id="fileName">לא נבחר קובץ</span>
+                <button id="uploadBtn" onclick="uploadAudio()" disabled><i class="fas fa-arrow-right"></i> הבא</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- מודאל שלישי - הצגת התקדמות -->
+    <div id="modal3" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modal3')">&times;</span>
+            <div class="modal-header"></div>
+            <div class="modal-body">
+                <p>התהליך מתבצע...</p>
+                <img src="assets/loading.gif" alt="טוען..." class="loading-gif">
+                <div class="progress-bar">
+                    <div id="progress" class="progress"></div>
+                </div>
+                <p id="progressText">0%</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- מודאל רביעי - הצגת תמלול עם כרטיסיות -->
+    <div id="modal4" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modal4')">&times;</span>
+            <div class="modal-body">
+                <div class="fixed-buttons">
+                    <button onclick="copyTranscription()"><i class="fas fa-copy"></i> העתק תמלול</button>
+                    <button onclick="downloadTranscription()"><i class="fas fa-download"></i> הורד תמלול בפורמט המוצג</button>
+                    <button class="text-icon-button start-over" onclick="restartProcess()"><i class="fas fa-play"></i> התחל מחדש</button>
+                    
+                   
+                    <button onclick="showSpeakerSegmentationModal()">
+                         <i class="fas fa-users"></i> הצג חלוקה לפי דוברים
+                    </button>
+                   
+
+                    
+
+                    
+                </div>
+                <p>תמלול הושלם</p>
+
+            <div class="feedback-button">
+                   <a href="https://forms.gle/Yn4azLNSbGZLWuM2A" target="_blank">שליחת משוב</a>
+            </div>
+                <!--
+                
+                <p>
+                    <span style="font-size: 0.9em;">
+                       <a href="https://chatgpt.com/g/g-wRwmzGcbQ-hdbyqv-kn-t-tqst-htmlvl" target=_blank>מעוניינים בקבלת טקסט מהודר עם חלוקה לדוברים? העתיקו את טקסט התמלול ולחצו כאן למעבר אל GPTs שיצרתי ויעשה לכם סדר בתמלול</a>
+                    </span>
+                </p>
+
+             
+                 <p>
+                    <span style="font-size: 0.9em;">
+                    <a href="https://chatgpt.com/g/g-6730e74d984c819081a13367feae8ad0-rykt-tmlvly-hqltvt-b-bryt" target=_blank>איכות ההקלטה פגמה ביכולת הדיוק של התמלול? לחצו כאן ל GPTs שיעשה לכם סדר</a>
+                    </span>
+                </p>
+                -->
+
+                <!-- הודעת העתקה -->
+                <div id="copyMessage" class="copy-message" style="display: none;">
+                    התמלול הועתק בהצלחה!
+                </div>
+
+                <div class="tabs">
+                    <button class="tablinks" onclick="openTab(event, 'textTab')" data-format="text"><i class="fas fa-file-alt"></i> טקסט</button>
+                    <button class="tablinks" onclick="openTab(event, 'srtTab')" data-format="srt"><i class="fas fa-closed-captioning"></i> SRT</button>
+                </div>
+                <div id="textTab" class="tabcontent">
+                    <pre id="textContent"></pre>
+                </div>
+                <div id="srtTab" class="tabcontent" style="display:none;">
+                    <pre id="srtContent"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- מודאל חלוקה לדוברים -->
+    <div id="speakerSegmentationModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('speakerSegmentationModal')">&times;</span>
+            <h2>חלוקה לפי דוברים</h2>
+            <p>שימו לב: רכיב זה באפליקציה נמצא בשלב הרצה. החלוקה לפי דוברים שתתקבל אינה מדויקת ב-100%. מומלץ לעבור עליה ולבצע תיקונים במידת הצורך. יש להמתין מספר דקות עד לקבלת התוצאה. בסיום הטקסט יופיע המשפט "סוף תמלול".</p>
+            <input type="text" id="intervieweeNameInput" placeholder="הקלד את שם המרואיין"><br>
+            <button onclick="startSpeakerSegmentation()">
+                 <i class="fas fa-users"></i> הצג חלוקה לפי דוברים
+            </button>
+
+            <div id="segmentationResult" style="white-space: pre-wrap; text-align: right;">
+                התוצאה תופיע כאן. נא להמתין לסוף התמלול.
+            </div>
+
+            <div class="action-buttons">
+                <button id="copyButton" onclick="copySegmentationResult()" style="display: none;">
+                     <i class="fas fa-copy"></i> העתק תמלול
+                </button>
+                <button id="downloadButton" onclick="downloadSegmentationResult()" style="display: none;">
+                     <i class="fas fa-download"></i> הורד תמלול
+                </button>
+            </div>
+        </div>
+    </div>
+
+ <!-- קישור להורדת תמלול -->
+    <a id="downloadLink" style="display:none;"></a>
+    
+    <script src="script_diaz.js"></script>
+    <p>
+        <center>
+            <a href="https://groq.com" target="_blank" rel="noopener noreferrer">
+              <img src="https://groq.com/wp-content/uploads/2024/03/PBG-mark1-color.svg" alt="Powered by Groq for fast inference." width="200" height="auto"/>
+            </a>
+        </center>
+    </p>
+</body>
+</html>
