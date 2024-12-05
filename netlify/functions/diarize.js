@@ -1,4 +1,5 @@
 const axios = require('axios');
+const FormData = require('form-data');
 
 exports.handler = async function(event, context) {
   const headers = {
@@ -21,15 +22,11 @@ exports.handler = async function(event, context) {
       throw new Error('API key not configured');
     }
 
-    // שימוש באותו פורמט בדיוק כמו בדוגמה שלהם
+    // קבלת URL זמני מ-pyannote
     const mediaUrl = 'media://nitzantry1';
-
-    console.log('Requesting temporary URL with:', mediaUrl);
-
+    
     const response = await axios.post('https://api.pyannote.ai/v1/media/input', 
-      {
-        url: mediaUrl
-      },
+      { url: mediaUrl },
       {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -38,13 +35,34 @@ exports.handler = async function(event, context) {
       }
     );
 
-    console.log('Response status:', response.status);
-    console.log('Response data:', response.data);
+    // הוצאת ה-URL מהתשובה
+    const uploadUrl = response.data.url;
+
+    // קבלת הקובץ מהבקשה
+    const fileData = event.body;
+
+    // העלאת הקובץ ל-URL שקיבלנו
+    await axios.put(uploadUrl, fileData, {
+      headers: {
+        'Content-Type': 'audio/mpeg'
+      }
+    });
+
+    // התחלת תהליך הזיהוי
+    const diarizeResponse = await axios.post('https://api.pyannote.ai/v1/diarize',
+      { url: mediaUrl },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(response.data)
+      body: JSON.stringify(diarizeResponse.data)
     };
 
   } catch (error) {
