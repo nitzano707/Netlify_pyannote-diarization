@@ -1,45 +1,50 @@
+const crypto = require('crypto');
+
 exports.handler = async function(event, context) {
-  console.log('Webhook received');
-  
+  console.log('Webhook received:', event.headers, event.body);
+
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers };
-  }
-
   try {
+    // וידוא חתימת Webhook
+    const timestamp = event.headers['x-request-timestamp'];
+    const signature = event.headers['x-signature'];
+    const webhookSecret = process.env.PYANNOTE_WEBHOOK_SECRET;
+
+    const signedContent = `v0:${timestamp}:${event.body}`;
+    const expectedSignature = crypto
+      .createHmac('sha256', webhookSecret)
+      .update(signedContent)
+      .digest('hex');
+
+    if (signature !== expectedSignature) {
+      console.error('Invalid webhook signature');
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'Invalid signature' })
+      };
+    }
+
+    // קריאת נתוני ה-webhook
     const webhookData = JSON.parse(event.body);
     console.log('Webhook data:', webhookData);
 
-    // בדיקת סטטוס העבודה
-    if (webhookData.status === 'succeeded') {
-      console.log('Diarization succeeded:', webhookData.output);
-      
-      // כאן אפשר לשמור את התוצאות במסד נתונים או לעשות פעולות נוספות
-      
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          message: 'Webhook processed successfully',
-          results: webhookData.output
-        })
-      };
-    } else {
-      console.log('Job status:', webhookData.status);
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          message: 'Job not completed yet',
-          status: webhookData.status
-        })
-      };
-    }
+    // אחסון התוצאות בקובץ או במסד נתונים
+    // כאן אפשר להוסיף קוד שישמור את התוצאות
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        message: 'Webhook processed successfully',
+        data: webhookData
+      })
+    };
 
   } catch (error) {
     console.error('Error processing webhook:', error);
