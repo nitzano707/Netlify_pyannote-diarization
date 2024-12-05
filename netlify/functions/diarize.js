@@ -24,7 +24,6 @@ exports.handler = async function(event, context) {
 
     // בדיקה שקיבלנו קובץ
     if (!event.isBase64Encoded || !event.body) {
-      console.error('No file uploaded or file is not base64 encoded');
       throw new Error('No file was uploaded');
     }
 
@@ -38,57 +37,43 @@ exports.handler = async function(event, context) {
     console.log('Using media URL:', mediaUrl);
 
     // קבלת URL זמני מ-pyannote
-    let response;
-    try {
-      response = await axios.post('https://api.pyannote.ai/v1/media/input', 
-        { url: mediaUrl },
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          }
+    const response = await axios.post('https://api.pyannote.ai/v1/media/input', 
+      { url: mediaUrl },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
         }
-      );
-      console.log('Got temporary URL:', response.data.url);
-    } catch (error) {
-      console.error('Error getting temporary URL from pyannote:', error);
-      throw new Error('Failed to get temporary URL from pyannote');
-    }
+      }
+    );
+
+    console.log('Got temporary URL:', response.data.url);
 
     // העלאת הקובץ
-    try {
-      await axios.put(response.data.url, fileBuffer, {
-        headers: {
-          'Content-Type': 'audio/mpeg'
-        }
-      });
-      console.log('File uploaded successfully');
-    } catch (error) {
-      console.error('Error uploading file to pyannote:', error);
-      throw new Error('Failed to upload file');
-    }
+    await axios.put(response.data.url, fileBuffer, {
+      headers: {
+        'Content-Type': 'audio/mpeg'
+      }
+    });
+
+    console.log('File uploaded successfully');
 
     // התחלת תהליך הזיהוי
     const webhookUrl = `${process.env.URL}/.netlify/functions/diarize-webhook`;
-    let diarizeResponse;
-    try {
-      diarizeResponse = await axios.post('https://api.pyannote.ai/v1/diarize',
-        {
-          url: mediaUrl,
-          webhook: webhookUrl
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          }
+    const diarizeResponse = await axios.post('https://api.pyannote.ai/v1/diarize',
+      {
+        url: mediaUrl,
+        webhook: webhookUrl
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
         }
-      );
-      console.log('Diarization started:', diarizeResponse.data);
-    } catch (error) {
-      console.error('Error starting diarization:', error);
-      throw new Error('Failed to start diarization');
-    }
+      }
+    );
+
+    console.log('Diarization started:', diarizeResponse.data);
 
     return {
       statusCode: 200,
